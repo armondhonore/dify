@@ -1,47 +1,47 @@
 application:
   name: dify
   pods:
-    - name: web
-      image: langgenius/dify-web:latest
-      path: /
-      servicePorts:
-        - 3000
-      vars:
-        CONSOLE_API_URL: "<%URL%>"
-        APP_API_URL: "<%URL%>"
-    - name: api
-      image: langgenius/dify-api:latest
-      path: /api
-      servicePorts:
-        - 5001
-      vars:
-        DB_USERNAME: dify
-        DB_PASSWORD: dify
-        DB_HOST: postgres.pod
-        DB_PORT: "5432"
-        DB_DATABASE: dify
-        REDIS_HOST: redis.pod
-        REDIS_PORT: "6379"
-        SECRET_KEY: "secret-changeme"
-        STORAGE_TYPE: local
-        LOCAL_STORAGE_PATH: /app/api/storage
-      volumes:
-        - name: storage
-          mountPath: /app/api/storage
-          size: 10Gi
-    - name: postgres
-      image: postgres:15-alpine
-      servicePorts:
-        - 5432
-      vars:
-        POSTGRES_DB: dify
-        POSTGRES_USER: dify
-        POSTGRES_PASSWORD: dify
-      volumes:
-        - name: db
-          mountPath: /var/lib/postgresql
-          size: 10Gi
-    - name: redis
-      image: redis:6-alpine
-      servicePorts:
-        - 6379
+  - name: web
+    image: langgenius/dify-web:latest
+    path: /
+    servicePorts:
+    - 3000
+    vars:
+      CONSOLE_API_URL: "<%URL%>"
+      APP_API_URL: "<%URL%>"
+  - name: api
+    image: langgenius/dify-api:latest
+    path: /api
+    servicePorts:
+    - 5001
+    vars:
+      DB_USERNAME: dify
+      DB_PASSWORD: dify
+      DB_HOST: postgres.pod
+      DB_PORT: "5432"
+      DB_DATABASE: dify
+      REDIS_HOST: redis.pod
+      REDIS_PORT: "6379"
+      SECRET_KEY: "secret-changeme"
+      STORAGE_TYPE: local
+      LOCAL_STORAGE_PATH: /app/api/storage
+    volumes:
+    - name: dify-storage
+      mountPath: /app/api/storage
+      size: 10Gi
+  - name: postgres
+    image: postgres:15-alpine
+    servicePorts:
+    - 5432
+    vars:
+      POSTGRES_DB: dify
+      POSTGRES_USER: dify
+      POSTGRES_PASSWORD: dify
+    volumes:
+    - name: dify-db
+      mountPath: /var/lib/postgresql
+      size: 10Gi
+  - name: redis
+    image: redis:6-alpine
+    servicePorts:
+    - 6379
