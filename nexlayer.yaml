@@ -7,8 +7,8 @@ application:
     servicePorts:
     - 3000
     vars:
-      CONSOLE_API_URL: "<%URL%>"
-      APP_API_URL: "<%URL%>"
+      CONSOLE_API_URL: "https://relaxed-weasel-dify.cloud.nexlayer.ai"
+      APP_API_URL: "https://relaxed-weasel-dify.cloud.nexlayer.ai"
   - name: api
     image: langgenius/dify-api:latest
     path: /api
