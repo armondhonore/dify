@@ -1,20 +1,30 @@
 application:
   name: dify
   pods:
+  # Web UI (Next.js). Public "/" routes here.
   - name: web
-    image: langgenius/dify-web:latest
+    image: langgenius/dify-web:0.15.3
     path: /
     servicePorts:
     - 3000
     vars:
       CONSOLE_API_URL: "https://relaxed-weasel-dify.cloud.nexlayer.ai"
       APP_API_URL: "https://relaxed-weasel-dify.cloud.nexlayer.ai"
+  # API server. "/api" routes here. MIGRATION_ENABLED runs the DB schema on boot.
   - name: api
-    image: langgenius/dify-api:latest
+    image: langgenius/dify-api:0.15.3
     path: /api
     servicePorts:
     - 5001
     vars:
+      MODE: api
+      LOG_LEVEL: INFO
+      SECRET_KEY: "sk-dify-secret-change-me-0123456789abcdef0123456789"
+      MIGRATION_ENABLED: "true"
+      CONSOLE_WEB_URL: "https://relaxed-weasel-dify.cloud.nexlayer.ai"
+      CONSOLE_API_URL: "https://relaxed-weasel-dify.cloud.nexlayer.ai"
+      SERVICE_API_URL: "https://relaxed-weasel-dify.cloud.nexlayer.ai"
+      APP_WEB_URL: "https://relaxed-weasel-dify.cloud.nexlayer.ai"
       DB_USERNAME: dify
       DB_PASSWORD: dify
       DB_HOST: postgres.pod
@@ -22,9 +32,44 @@ application:
       DB_DATABASE: dify
       REDIS_HOST: redis.pod
       REDIS_PORT: "6379"
-      SECRET_KEY: "secret-changeme"
-      STORAGE_TYPE: local
-      LOCAL_STORAGE_PATH: /app/api/storage
+      REDIS_DB: "0"
+      CELERY_BROKER_URL: "redis://redis.pod:6379/1"
+      STORAGE_TYPE: opendal
+      OPENDAL_SCHEME: fs
+      STORAGE_LOCAL_PATH: storage
+      VECTOR_STORE: weaviate
+      WEAVIATE_ENDPOINT: "http://weaviate.pod:8080"
+      WEAVIATE_API_KEY: "WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih"
+      CODE_EXECUTION_ENDPOINT: "http://sandbox.pod:8194"
+      CODE_EXECUTION_API_KEY: "dify-sandbox"
+    volumes:
+    - name: dify-storage
+      mountPath: /app/api/storage
+      size: 10Gi
+  # Celery worker — same image as api, MODE=worker. No public route.
+  - name: worker
+    image: langgenius/dify-api:0.15.3
+    servicePorts:
+    - 5001
+    vars:
+      MODE: worker
+      LOG_LEVEL: INFO
+      SECRET_KEY: "sk-dify-secret-change-me-0123456789abcdef0123456789"
+      DB_USERNAME: dify
+      DB_PASSWORD: dify
+      DB_HOST: postgres.pod
+      DB_PORT: "5432"
+      DB_DATABASE: dify
+      REDIS_HOST: redis.pod
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      CELERY_BROKER_URL: "redis://redis.pod:6379/1"
+      STORAGE_TYPE: opendal
+      OPENDAL_SCHEME: fs
+      STORAGE_LOCAL_PATH: storage
+      VECTOR_STORE: weaviate
+      WEAVIATE_ENDPOINT: "http://weaviate.pod:8080"
+      WEAVIATE_API_KEY: "WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih"
     volumes:
     - name: dify-storage
       mountPath: /app/api/storage
@@ -45,3 +90,33 @@ application:
     image: redis:6-alpine
     servicePorts:
     - 6379
+  # Vector store (required when VECTOR_STORE=weaviate).
+  - name: weaviate
+    image: semitechnologies/weaviate:1.25.0
+    servicePorts:
+    - 8080
+    vars:
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: none
+      CLUSTER_HOSTNAME: node1
+      QUERY_DEFAULTS_LIMIT: "25"
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
+      AUTHENTICATION_APIKEY_ENABLED: "true"
+      AUTHENTICATION_APIKEY_ALLOWED_KEYS: "WVF5YThaHlkYwhGUSmCRgsX3tD5ngdN8pkih"
+      AUTHENTICATION_APIKEY_USERS: "hello@dify.ai"
+      AUTHORIZATION_ADMINLIST_ENABLED: "true"
+      AUTHORIZATION_ADMINLIST_USERS: "hello@dify.ai"
+    volumes:
+    - name: dify-weaviate
+      mountPath: /var/lib/weaviate
+      size: 5Gi
+  # Sandbox for code execution (required by api/worker).
+  - name: sandbox
+    image: langgenius/dify-sandbox:0.2.10
+    servicePorts:
+    - 8194
+    vars:
+      API_KEY: "dify-sandbox"
+      GIN_MODE: release
+      WORKER_TIMEOUT: "15"
+      ENABLE_NETWORK: "true"
